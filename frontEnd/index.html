@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8" />
+    <title>IP溯源定位</title>
+
+    <!-- 自定义网站图标 -->
+    <link rel="icon" href="webIcon.png" type="image/png">
+
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Leaflet 地图 -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+    <style>
+        /* 科幻字体 */
+        @import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;700&display=swap');
+
+        body {
+            margin: 0;
+            padding: 2rem;
+            font-family: 'Roboto Mono', monospace;
+            background-color: #1a1a1a;
+            color: white;
+            overflow-x: hidden;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        .light-mode body {
+            background-color: white;
+            color: black;
+        }
+
+        h2 {
+            text-align: center;
+            color: white;
+            text-shadow: 0 0 10px #00ff00;
+        }
+
+        .light-mode h2 {
+            color: black;
+            text-shadow: none;
+        }
+
+        .input-group input {
+            background-color: #1a1a1a;
+            color: white;
+            border: 1px solid #00ff00;
+        }
+
+        .light-mode .input-group input {
+            background-color: white;
+            color: black;
+            border: 1px solid #666;
+        }
+
+        .btn-primary {
+            background-color: #00ff00;
+            color: black;
+            border: none;
+            box-shadow: 0 0 10px #006400;
+        }
+
+        .btn-outline-secondary {
+            color: #00ff00;
+            border-color: #00ff00;
+            box-shadow: 0 0 5px #006400;
+        }
+
+        .card {
+            background-color: #1a1a1a;
+            border: 1px solid #00ff00;
+        }
+
+        .light-mode .card {
+            background-color: white;
+            border: 1px solid #ccc;
+        }
+
+        .card-header {
+            background-color: #002200;
+            color: #00ff00;
+            font-weight: bold;
+        }
+
+        .light-mode .card-header {
+            background-color: #f8f8f8;
+            color: black;
+        }
+
+        .list-group-item {
+            background-color: #1a1a1a;
+            color: white;
+            border: none;
+            border-bottom: 1px dashed #00ff00;
+        }
+
+        .light-mode .list-group-item {
+            background-color: white;
+            color: black;
+            border-bottom: 1px dashed #ccc;
+        }
+
+        #map {
+            height: 300px;
+            background-color: #1a1a1a;
+        }
+
+        .footer-info {
+            margin-top: 3rem;
+            text-align: center;
+            font-size: 0.9rem;
+            color: #cccccc;
+        }
+
+        a#baiduMapLink {
+            color: #00ff00;
+            text-decoration: underline;
+        }
+
+        .light-mode a#baiduMapLink {
+            color: blue;
+        }
+
+        /* 黑客风格背景动画 */
+        canvas#matrixCanvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: -1;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+
+<canvas id="matrixCanvas"></canvas>
+
+<!-- 页面主体 -->
+<div class="container">
+    <h2>IP溯源定位</h2>
+
+    <div class="input-group mb-3">
+        <input type="text" id="ipInput" class="form-control" placeholder="请输入 IP 地址" value="8.8.8.8">
+        <button class="btn btn-primary" onclick="queryIpInfo()">查询</button>
+        <button class="btn btn-outline-secondary" onclick="toggleDarkMode()">切换至明亮模式</button>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card mb-3">
+                <div class="card-header">🌐 地理信息</div>
+                <ul class="list-group list-group-flush" id="geoInfo">
+                    <li class="list-group-item">暂无数据</li>
+                </ul>
+            </div>
+
+            <div class="card">
+                <div class="card-header">🌤️ 当地天气</div>
+                <ul class="list-group list-group-flush" id="weatherInfo">
+                    <li class="list-group-item">暂无数据</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card mb-3">
+                <div class="card-header">🗺️ 地图预览</div>
+                <div id="map"></div>
+                <div class="card-footer">
+                    <a href="#" id="baiduMapLink" target="_blank">在百度地图中打开</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 作者信息 | 版本号 | 注意事项 -->
+<div class="footer-info">
+    <p>作者：killLog | 版本：v1.0.0</p>
+    <p>需要的技术和工具：java、计算机网络、html、css、javaScript、maven、IDEA、Vscode、WireShark；天气数据来自 Open-Meteo，无需 API Key。</p>
+</div>
+
+<!-- Matrix 动画脚本 -->
+<script>
+    const canvas = document.getElementById("matrixCanvas");
+    const ctx = canvas.getContext("2d");
+
+    // 设置 canvas 大小
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    const letters = "01";
+    const fontSize = 16;
+    const columns = canvas.width / fontSize;
+    const drops = Array(Math.floor(columns)).fill(1);
+
+    function draw() {
+        ctx.fillStyle = "rgba(0, 0, 0, 0.05)";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = "#006400"; // 更暗的绿色
+        ctx.font = fontSize + "px monospace";
+
+        for (let i = 0; i < drops.length; i++) {
+            const text = letters.charAt(Math.floor(Math.random() * letters.length));
+            ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+
+            if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) {
+                drops[i] = 0;
+            }
+
+            drops[i]++;
+        }
+    }
+
+    setInterval(draw, 50);
+
+    window.addEventListener("resize", () => {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+    });
+</script>
+
+<!-- 主要逻辑脚本 -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+    // 初始化地图
+    let map = L.map('map').setView([0, 0], 2);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors'
+    }).addTo(map);
+
+    function toggleDarkMode() {
+        document.body.classList.toggle('light-mode');
+
+        // 修改按钮文字
+        const button = document.querySelector("button[onclick='toggleDarkMode()']");
+        if (document.body.classList.contains('light-mode')) {
+            button.textContent = "切换至黑暗模式";
+        } else {
+            button.textContent = "切换至明亮模式";
+        }
+    }
+
+    async function queryIpInfo() {
+        const ip = document.getElementById("ipInput").value;
+        try {
+            const res = await fetch(`http://localhost:8080/api/ipinfo?ip=${ip}`);
+            const data = await res.json();
+
+            if (data.status === "success") {
+                updateGeoInfo(data);
+                updateWeatherInfo(data.lat, data.lon); // 使用经纬度查询天气
+                updateMap(data.lat, data.lon, data.city);
+                updateBaiduMapLink(data.lat, data.lon);
+            } else {
+                alert("查询失败：" + JSON.stringify(data));
+            }
+        } catch (e) {
+            console.error(e);
+            alert("请求失败，请检查网络或后端服务是否启动");
+        }
+    }
+
+    function updateGeoInfo(data) {
+        const container = document.getElementById("geoInfo");
+        container.innerHTML = `
+            <li class="list-group-item"><strong>IP：</strong>${data.query}</li>
+            <li class="list-group-item"><strong>国家/地区：</strong>${data.country} (${data.countryCode})</li>
+            <li class="list-group-item"><strong>省份/城市：</strong>${data.regionName} / ${data.city}</li>
+            <li class="list-group-item"><strong>运营商：</strong>${data.isp}</li>
+            <li class="list-group-item"><strong>经纬度：</strong>${data.lat}, ${data.lon}</li>
+            <li class="list-group-item"><strong>时区：</strong>${data.timezone}</li>
+        `;
+    }
+
+    async function updateWeatherInfo(lat, lon) {
+        const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&temperature_unit=celsius&windspeed_unit=kmh`;
+
+        try {
+            const res = await fetch(url);
+            if (!res.ok) {
+                throw new Error(`HTTP error! status: ${res.status}`);
+            }
+            const weatherData = await res.json();
+
+            const current = weatherData.current_weather;
+
+            const container = document.getElementById("weatherInfo");
+            container.innerHTML = `
+                <li class="list-group-item"><strong>天气代码：</strong>${current.weathercode}</li>
+                <li class="list-group-item">🌡️ 温度：${current.temperature}℃</li>
+                <li class="list-group-item">🌬️ 风速：${current.windspeed} km/h</li>
+                <li class="list-group-item">🧭 风向：${current.winddirection}°</li>
+            `;
+        } catch (e) {
+            console.error(e);
+            document.getElementById("weatherInfo").innerHTML = "<li class='list-group-item'>天气查询失败: " + e.message + "</li>";
+        }
+    }
+
+    function updateMap(lat, lon, city) {
+        map.setView([lat, lon], 10);
+        map.eachLayer(layer => {
+            if (layer instanceof L.Marker) {
+                map.removeLayer(layer);
+            }
+        });
+        L.marker([lat, lon]).addTo(map).bindPopup(city).openPopup();
+    }
+
+    function updateBaiduMapLink(lat, lon) {
+        const link = `https://map.baidu.com/poi/index?qt=poi&extype=detail&cid=0&wd=${lat},${lon}`;
+        document.getElementById("baiduMapLink").href = link;
+    }
+</script>
+
+</body>
+</html>

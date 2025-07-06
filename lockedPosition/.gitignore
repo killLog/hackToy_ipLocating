@@ -1,0 +1,128 @@
+# =====================
+# 操作系统生成的文件
+# =====================
+.DS_Store
+Thumbs.db
+
+# =====================
+# 编译输出目录
+# =====================
+target/
+**/target/
+bin/
+**/bin/
+build/
+**/build/
+
+# =====================
+# 日志文件
+# =====================
+*.log
+logs/
+**/logs/
+
+# =====================
+# 临时文件
+# =====================
+temp/
+**/temp/
+tmp/
+**/tmp/
+
+# =====================
+# IDE 配置文件
+# =====================
+# IntelliJ IDEA
+.idea/
+**/.idea/
+*.iws
+*.iml
+*.ipr
+out/
+**/out/
+.idea_modules/
+**/.idea_modules/
+
+# Eclipse
+.metadata
+**/.metadata
+.classpath
+**/.classpath
+.project
+**/.project
+.settings/
+**/.settings/
+
+# VS Code
+.vscode/
+**/.vscode/
+
+# =====================
+# 依赖管理
+# =====================
+# Maven
+.mvn/
+**/.mvn/
+mvnw
+mvnw.cmd
+
+# Gradle
+.gradle/
+**/.gradle/
+gradlew
+gradlew.bat
+gradle/
+**/gradle/
+
+# =====================
+# 特定于项目的文件
+# =====================
+# 数据库转储文件
+*.dump
+*.dumpstream
+
+# 打包产物
+*.jar
+*.war
+*.ear
+*.zip
+
+# 项目生成的文件
+createdFiles.lst
+inputFiles.lst
+workspace.xml
+
+# 特定日期的文件（示例：2025-06-19 生成的文件）
+2025-06-19T21-28-52_813.dumpstream
+
+# =====================
+# 测试相关
+# =====================
+# 测试报告
+test-reports/
+**/test-reports/
+
+# 测试目录
+test/
+**/test/
+tests/
+**/tests/
+
+# 新增：若 frontEnd、lockedPosition 里有编译产物、临时文件等需排除，可补充
+frontEnd/target/
+frontEnd/bin/
+frontEnd/build/
+frontEnd/logs/
+frontEnd/temp/
+frontEnd/tmp/
+frontEnd/.idea/
+frontEnd/out/
+# lockedPosition 同理，按需补充
+lockedPosition/target/
+lockedPosition/bin/
+lockedPosition/build/
+lockedPosition/logs/
+lockedPosition/temp/
+lockedPosition/tmp/
+lockedPosition/.idea/
+lockedPosition/out/
